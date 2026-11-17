@@ -612,6 +612,21 @@ impl eframe::App for App {
                 if self.game.is_none()&& ui.button("Windows setup").on_hover_text("One-time administrator approval for the private game's public CA and localhost hostname. Game itself runs normally.").clicked()&& let Some(invite)=&self.invite{match crate::platform::request_setup(&invite.ca_pem,&self.root){Ok(())=>self.notice="Approve Windows setup, then click Play.".into(),Err(e)=>self.error=e.to_string()}}
             });
             ui.weak("Game updates and launcher updates are separate. Your game files are never silently downgraded.");
+            ui.collapsing("Controls troubleshooting", |ui| {
+                ui.label("For stuck movement, missing Escape menu or broken UI: try fresh local settings with third-party addons set aside. All original settings, bindings, macros and addons are kept in a dated backup. Your characters and progress stay unchanged.");
+                if ui.add_enabled(self.game.is_none() && !self.launching && self.settings.game.is_some(), egui::Button::new("Create clean controls profile (keep backup)")).clicked() {
+                    match crate::recovery::prepare(self.settings.game.as_ref().unwrap()) {
+                        Ok(path) => { self.notice=format!("Clean controls profile prepared. Backup: {}. Click Play, then test movement and Escape. This is an isolation test, not a confirmed fix.", path.display()); self.error.clear(); }
+                        Err(e) => self.error=format!("{e:#}"),
+                    }
+                }
+                if ui.add_enabled(self.game.is_none() && !self.launching && self.settings.game.is_some(), egui::Button::new("Restore previous controls and addons")).clicked() {
+                    match crate::recovery::restore(self.settings.game.as_ref().unwrap()) {
+                        Ok(_) => { self.notice="Previous settings and addons restored. The clean test profile was kept in the backup folder.".into(); self.error.clear(); }
+                        Err(e) => self.error=format!("{e:#}"),
+                    }
+                }
+            });
         });
         ui.add_space(12.);
         egui::Frame::group(ui.style()).inner_margin(16.).show(ui,|ui|{

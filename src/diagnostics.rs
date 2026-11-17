@@ -56,6 +56,70 @@ fn tail(path: &Path) -> String {
     let _ = f.take(16000).read_to_end(&mut b);
     redact(&String::from_utf8_lossy(&b))
 }
+fn control_profile(folder: &Path) -> String {
+    let addon = folder.join("Interface/AddOns/JansInputDiagnostics");
+    let mut lines = vec![format!(
+        "Control observer installed: lua={} toc={} cleanProfile={}",
+        addon.join("JansInputDiagnostics.lua").is_file(),
+        addon.join("JansInputDiagnostics.toc").is_file(),
+        folder.join("WTF/.wow-friends-controls-test").is_file()
+    )];
+    if let Ok(file) = fs::File::open(folder.join("WTF/ForeverLauncher.wtf")) {
+        let mut text = String::new();
+        let _ = file.take(65536).read_to_string(&mut text);
+        for line in text.lines() {
+            let fields: Vec<_> = line.split_whitespace().collect();
+            if fields.len() == 3
+                && fields[0] == "SET"
+                && [
+                    "gamepadenable",
+                    "autointeract",
+                    "shownpetutorials",
+                    "showtutorials",
+                    "synchronizebindings",
+                    "synchronizeconfig",
+                ]
+                .contains(&fields[1].to_ascii_lowercase().as_str())
+            {
+                let value = fields[2].trim_matches('"');
+                if value.len() <= 8 && value.bytes().all(|b| b.is_ascii_digit()) {
+                    lines.push(format!("Control setting {}={value}", fields[1]));
+                }
+            }
+        }
+    }
+    // Inspect only our addon's enabled flag, never other addon names, macros,
+    // bindings or account-folder names. WoW writes saved variables at logout.
+    for entry in walkdir::WalkDir::new(folder.join("WTF"))
+        .max_depth(8)
+        .follow_links(false)
+        .into_iter()
+        .take(15000)
+        .filter_map(Result::ok)
+    {
+        if entry.file_type().is_file()
+            && entry.file_name() == "AddOns.txt"
+            && let Ok(file) = fs::File::open(entry.path())
+        {
+            let mut text = String::new();
+            let _ = file.take(65536).read_to_string(&mut text);
+            for line in text.lines() {
+                if let Some((name, value)) = line.split_once(':')
+                    && name.trim() == "JansInputDiagnostics"
+                {
+                    let value = value.trim();
+                    if ["enabled", "disabled", "0", "1"].contains(&value) {
+                        lines.push(format!("Observer saved enabled flag: {value}"));
+                    }
+                }
+            }
+        }
+        if lines.len() >= 20 {
+            break;
+        }
+    }
+    lines.join("\n")
+}
 #[derive(Serialize)]
 pub struct Report {
     version: u8,
@@ -87,6 +151,11 @@ pub fn collect(
     if let Some(game) = &settings.game
         && let Some(folder) = game.parent()
     {
+        logs.entry("client".into()).and_modify(|text| {
+            text.push('\n');
+            text.push_str(&control_profile(folder));
+            *text = redact(text);
+        });
         for (kind, name) in [("gx", "gx.log"), ("general", "General.log")] {
             logs.insert(kind.into(), tail(&folder.join("Logs").join(name)));
         }
@@ -261,5 +330,28 @@ mod tests {
         std::fs::write(root.path().join(".build.info"), "broken metadata").unwrap();
         let r = collect(&settings, root.path(), "fixture", None, "Play blocked");
         assert!(r.logs["client"].contains("Version metadata error"));
+    }
+    #[test]
+    fn control_inventory_is_allowlisted() {
+        let d = tempfile::tempdir().unwrap();
+        fs::create_dir_all(d.path().join("WTF/Account/private-name")).unwrap();
+        fs::write(d.path().join("WTF/ForeverLauncher.wtf"), "SET GamePadEnable \"1\"\nSET autoInteract \"1\"\nSET accountName \"private@example.invalid\"\nSET showTutorials \"123456789-bad\"\n").unwrap();
+        fs::write(
+            d.path().join("WTF/Account/private-name/AddOns.txt"),
+            "OtherPrivateAddon: enabled\nJansInputDiagnostics: disabled\n",
+        )
+        .unwrap();
+        let text = control_profile(d.path());
+        assert!(text.contains("GamePadEnable=1"));
+        assert!(text.contains("autoInteract=1"));
+        assert!(text.contains("flag: disabled"));
+        for secret in [
+            "private-name",
+            "private@example.invalid",
+            "OtherPrivateAddon",
+            "123456789-bad",
+        ] {
+            assert!(!text.contains(secret));
+        }
     }
 }

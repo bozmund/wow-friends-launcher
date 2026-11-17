@@ -4,6 +4,7 @@ mod config;
 mod diagnostics;
 mod game;
 mod platform;
+mod recovery;
 mod relay;
 mod service;
 mod ui;

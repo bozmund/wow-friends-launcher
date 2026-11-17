@@ -65,7 +65,12 @@ pub fn prepare_files(game: &Path, settings: &Settings, invite: &Invitation) -> R
     let addon = folder.join("Interface/AddOns/JansInputDiagnostics");
     if settings.support_diagnostics {
         fs::create_dir_all(&addon)?;
-        crate::config::save_atomic(&addon.join("JansInputDiagnostics.lua"), LUA.as_bytes())?;
+        let observer = if wtf.join(".wow-friends-controls-test").is_file() {
+            format!("JANS_DIAGNOSTICS_SHOW_PANEL=true\n{LUA}")
+        } else {
+            LUA.to_owned()
+        };
+        crate::config::save_atomic(&addon.join("JansInputDiagnostics.lua"), observer.as_bytes())?;
         crate::config::save_atomic(&addon.join("JansInputDiagnostics.toc"), TOC.as_bytes())?;
     } else if addon.exists() {
         let stamp = std::time::SystemTime::now()
