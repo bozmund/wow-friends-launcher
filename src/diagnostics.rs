@@ -172,11 +172,33 @@ pub async fn upload(
         .json(report)
         .send()
         .await
-        .map_err(|_| anyhow::anyhow!("Support reports offline; retrying"))?;
+        .map_err(|e| anyhow::anyhow!(network_problem(&e)))?;
+    let code = response.status().as_u16();
     if !response.status().is_success() {
-        anyhow::bail!("Support upload HTTP {}", response.status().as_u16());
+        anyhow::bail!(upload_problem(code));
     }
     Ok(())
+}
+/// Explains a failed connection without the URL or any header (no credentials).
+pub fn network_problem(e: &reqwest::Error) -> String {
+    let kind = if e.is_timeout() {
+        "the server did not answer within 10 seconds"
+    } else if e.is_connect() {
+        "this PC could not connect to the server (offline, firewall or antivirus?)"
+    } else {
+        "the connection failed"
+    };
+    format!("Cannot reach the private server: {kind}.")
+}
+pub fn upload_problem(code: u16) -> String {
+    match code {
+        401 => "the server rejected this invitation (revoked or replaced). Ask the server owner for a new one.".into(),
+        403 => "the server refused reports for this account.".into(),
+        404 => "this server does not accept support reports yet.".into(),
+        429 => "reports were sent too often; the next one will go through.".into(),
+        400 | 413 => format!("the server rejected the report format (HTTP {code}). Tell the server owner."),
+        _ => format!("the server answered HTTP {code}."),
+    }
 }
 #[cfg(test)]
 mod tests {
@@ -196,6 +218,12 @@ mod tests {
         ] {
             assert!(!s.contains(bad));
         }
+    }
+    #[test]
+    fn upload_errors_are_explained() {
+        assert!(upload_problem(401).contains("rejected this invitation"));
+        assert!(upload_problem(404).contains("does not accept"));
+        assert!(upload_problem(500).contains("HTTP 500"));
     }
     #[test]
     fn bounds_large_lines() {

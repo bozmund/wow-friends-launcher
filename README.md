@@ -5,7 +5,7 @@ A native Rust desktop launcher for an invitation-only WoW Forever server. The pu
 ## Windows users
 
 1. Download `wow-friends-launcher-windows-x86_64.exe` from this repository's Releases.
-2. Put it beside your existing private `invite.json` and `ca.crt.pem`, then open it. Existing launcher settings are imported automatically. Alternatively, choose **Use existing launcher folder** in the window.
+2. Put it beside your existing private `invite.json` and `ca.crt.pem`, then open it. Existing launcher settings are imported automatically. Alternatively, choose **Use existing launcher folder** in the window, or paste that folder (or the `invite.json` path) into the text field and click **Import path**; this works even if the Windows file picker does not open.
 3. Select the **game's** `_forever_/Wow.exe` if it was not discovered. You no longer need an Install Update CMD or to select Start WoW.exe.
 4. Complete **Windows setup** once. This requests administrator approval for the private game's public certificate and the localhost game hostname. The game itself runs without administrator privileges.
 5. Click **Play**, using your existing private-server account. Minimize the launcher while playing; it carries the game connection.
@@ -39,6 +39,8 @@ cargo build --locked --release
 ```
 
 The build compiles the bundled connector from its included source. No private server files or credentials are needed to build. Linux/macOS game launching is not claimed as tested support.
+
+Set `WOW_FRIENDS_LAUNCHER_DATA` to a separate empty folder to test a build beside an existing installation without touching its settings or invitation.
 
 Useful read-only commands:
 

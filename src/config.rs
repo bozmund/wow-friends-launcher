@@ -96,6 +96,12 @@ impl Default for Settings {
 }
 
 pub fn data_dir() -> Result<PathBuf> {
+    // Isolated profile for testing a build beside a real installation.
+    if let Some(p) = std::env::var_os("WOW_FRIENDS_LAUNCHER_DATA").filter(|p| !p.is_empty()) {
+        let p = PathBuf::from(p);
+        fs::create_dir_all(&p)?;
+        return Ok(p);
+    }
     let p = directories::BaseDirs::new()
         .context("Cannot find user profile")?
         .data_local_dir()

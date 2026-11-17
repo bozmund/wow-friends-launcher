@@ -1,6 +1,6 @@
 [package]
 name = "wow-friends-launcher"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 license = "GPL-2.0-only"
 description = "Private-invitation WoW launcher with compatibility checks and optional support reports"
@@ -39,3 +39,6 @@ cc = "1"
 lto = "thin"
 codegen-units = 1
 strip = true
+
+[dev-dependencies]
+egui_kittest = { version = "0.37", features = ["eframe"] }
