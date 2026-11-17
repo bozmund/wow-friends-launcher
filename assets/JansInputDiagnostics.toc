@@ -1,0 +1,6 @@
+## Interface: 16001
+## Title: Jan's WoW Support
+## Notes: Opt-in private support diagnostics. Does not change gameplay or bindings.
+## Version: 1.1.0
+## SavedVariables: JansInputDiagnosticsDB
+JansInputDiagnostics.lua

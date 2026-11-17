@@ -1,0 +1,13 @@
+/target/
+/dist/
+*.pdb
+*.obj
+*.exe
+invite.json
+player-settings.json
+*.pem
+*.key
+*.pfx
+*.dpapi
+*.private*
+.env*

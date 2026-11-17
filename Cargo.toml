@@ -1,0 +1,41 @@
+[package]
+name = "wow-friends-launcher"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-2.0-only"
+description = "Private-invitation WoW launcher with compatibility checks and optional support reports"
+repository = "https://github.com/bozmund/wow-friends-launcher"
+publish = false
+
+[dependencies]
+anyhow = "1"
+base64 = "0.22"
+directories = "6"
+eframe = { version = "0.37", default-features = false, features = ["default_fonts", "glow", "clipboard", "links"] }
+fs2 = "0.4"
+futures-util = "0.3"
+hex = "0.4"
+regex = "1"
+reqwest = { version = "0.13", default-features = false, features = ["native-tls", "json", "stream"] }
+rfd = "0.17"
+self-replace = "1.5"
+semver = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+tempfile = "3"
+tokio = { version = "1", features = ["rt-multi-thread", "net", "macros", "io-util", "process", "sync", "time"] }
+tokio-tungstenite = { version = "0.28", features = ["native-tls"] }
+url = "2"
+walkdir = "2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.60", features = ["Win32_Foundation", "Win32_Security_Cryptography", "Win32_System_Memory", "Win32_System_Threading", "Win32_System_Diagnostics_ToolHelp", "Win32_System_ProcessStatus", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_Storage_FileSystem", "Win32_System_Environment"] }
+
+[build-dependencies]
+cc = "1"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
